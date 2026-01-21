@@ -7,9 +7,10 @@
   "theme_color": "#ff0000",
   "icons": [
     {
-      "src": "C:\\Users\\tatsu\\OneDrive\\ドキュメント\\サークルカレンダー\\豆.png",
+      "src": "./icon.png",
       "sizes": "192x192",
       "type": "image/png"
     }
   ]
+
 }
