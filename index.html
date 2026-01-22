@@ -1,31 +1,55 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Musical Archive</title>
 
   <link rel="icon" href="./icon.png">
-  
+
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
 
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
-  
+
   <style>
-    body { margin: 0; padding: 0; font-family: sans-serif; }
-    #calendar { max-width: 900px; margin: 0 auto; padding: 10px; height: 90vh; }
-    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    #calendar {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 10px;
+      height: 90vh;
+    }
+
     /* イベントの見た目カスタマイズ */
-    .fc-event { cursor: pointer; background-color: #ff0000; border: none; }
-    .fc-event-title { font-size: 0.9em; }
-    
+    .fc-event {
+      cursor: pointer;
+      background-color: #ff0000 !important;
+      /* 背景を強制的に赤にする */
+      border: none !important;
+      color: #ffffff !important;
+      /* 文字を強制的に白にする（背景が赤なら白が見やすい） */
+    }
+
+    .fc-event-title {
+      font-size: 0.9em;
+    }
+
     /* スマホで見やすくする */
     @media (max-width: 768px) {
-      .fc-toolbar-title { font-size: 1.2em; }
+      .fc-toolbar-title {
+        font-size: 1.2em;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <div id='calendar'></div>
@@ -34,9 +58,9 @@
     // ★ここにGASのウェブアプリURLを貼り付ける
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxt5yqGKDgCmALZ7OROxOR4-XaDz2YCLRnlDTWFKxAMcu1BBafZEQVPAKBZBEqmdKrgBw/exec';
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       var calendarEl = document.getElementById('calendar');
-      
+
       var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'ja',
@@ -46,9 +70,9 @@
           center: 'title',
           right: 'listMonth,dayGridMonth'
         },
-        
+
         // イベントデータ取得
-        events: function(info, successCallback, failureCallback) {
+        events: function (info, successCallback, failureCallback) {
           fetch(GAS_URL)
             .then(response => response.json())
             .then(data => {
@@ -62,20 +86,20 @@
         },
 
         // イベントクリック時の動作
-        eventClick: function(info) {
+        eventClick: function (info) {
           info.jsEvent.preventDefault(); // デフォルトのリンク遷移を防ぐ
           if (info.event.url) {
             window.open(info.event.url, '_blank'); // 別タブ(またはYouTubeアプリ)で開く
           }
         },
-        
+
         // (オプション) イベントにサムネイルを表示したい場合
         //eventContent: function(arg) {
-          // スマホで重くなる可能性があるので、文字だけがシンプルでおすすめ
-          //return { html: '<div>' + arg.event.title + '</div>' };
+        // スマホで重くなる可能性があるので、文字だけがシンプルでおすすめ
+        //return { html: '<div>' + arg.event.title + '</div>' };
         //}
       });
-      
+
       calendar.render();
     });
 
@@ -85,7 +109,5 @@
     }
   </script>
 </body>
+
 </html>
-
-
-
