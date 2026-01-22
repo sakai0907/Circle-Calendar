@@ -52,6 +52,7 @@
           fetch(GAS_URL)
             .then(response => response.json())
             .then(data => {
+              console.log("GASから届いたデータ:", data); // ★これを追加！
               successCallback(data);
             })
             .catch(error => {
@@ -85,4 +86,5 @@
   </script>
 </body>
 </html>
+
 
