@@ -12,31 +12,31 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
-    /* --- Google Calendar風のデザイン定義 --- */
+    /* --- 基本デザイン --- */
     :root {
       --google-blue: #1a73e8;
-      --google-red: #ea4335;
       --google-text: #3c4043;
       --google-grid: #dadce0;
-      --event-bg: #039be5; /* Googleカレンダーの標準的な青 */
+      --event-bg: #ea4335; /* Google Red */
+      --modal-bg: #ffffff;
     }
 
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Roboto', sans-serif; /* Googleフォント */
+      font-family: 'Roboto', sans-serif;
       color: var(--google-text);
       background-color: #fff;
+      overflow: hidden; /* モーダル表示時に背景がスクロールしないように */
     }
 
     #calendar {
       max-width: 100%;
+      height: 100vh;
       margin: 0 auto;
-      /* 画面の高さいっぱいに広げてスクロールさせる */
-      height: 100vh; 
     }
 
-    /* ツールバー（年月表示など） */
+    /* ツールバー */
     .fc-header-toolbar {
       padding: 8px 16px !important;
       margin-bottom: 0 !important;
@@ -45,61 +45,34 @@
       top: 0;
       z-index: 1000;
       border-bottom: 1px solid var(--google-grid);
-      box-shadow: 0 1px 2px rgba(60,64,67,0.1);
     }
-
     .fc-toolbar-title {
-      font-size: 1.3em !important;
+      font-size: 1.2em !important;
       font-weight: 500;
-      color: var(--google-text);
     }
 
-    /* ボタンのデザインをフラットに */
-    .fc-button-primary {
-      background-color: transparent !important;
-      border: 1px solid var(--google-grid) !important;
-      color: var(--google-text) !important;
-      box-shadow: none !important;
-      font-weight: 500;
-      border-radius: 4px !important;
-      padding: 6px 12px !important;
+    /* イベントデザイン */
+    .fc-event {
+      border: none !important;
+      margin: 1px 2px !important;
+      box-shadow: 0 1px 2px rgba(60,64,67,0.3);
+      cursor: pointer;
     }
-    .fc-button-primary:hover {
-      background-color: #f1f3f4 !important;
-    }
-    .fc-button-active {
-      background-color: #e8f0fe !important;
-      color: var(--google-blue) !important;
-      border-color: transparent !important;
-    }
-
-    /* カレンダー本体のグリッド線 */
-    .fc-theme-standard td, .fc-theme-standard th {
-      border-color: var(--google-grid);
-    }
-
-    /* 曜日のヘッダー */
-    .fc-col-header-cell-cushion {
-      color: #70757a;
+    .fc-event-main {
+      background-color: var(--event-bg) !important;
+      color: #fff !important;
+      padding: 2px 6px !important;
       font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      padding: 8px 0;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-radius: 4px;
     }
 
     /* 土日の色 */
     .fc-day-sat { background-color: #fafafa; color: #1a73e8; }
     .fc-day-sun { background-color: #fafafa; color: #ea4335; }
-
-    /* 今日の日付のデザイン */
-    .fc-day-today {
-      background-color: transparent !important; /* 背景色は消す */
-    }
-    /* 日付数字の丸（今日だけ青くなる） */
-    .fc-daygrid-day-top {
-      justify-content: center; /* 数字を真ん中に */
-      padding-top: 4px;
-    }
     .fc-day-today .fc-daygrid-day-number {
       background-color: var(--google-blue);
       color: white;
@@ -110,80 +83,196 @@
       align-items: center;
       justify-content: center;
     }
-    .fc-daygrid-day-number {
-      color: var(--google-text);
-      font-size: 12px;
-      text-decoration: none !important;
+
+    /* --- ボトムシート（下から出るタブ）のデザイン --- */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s;
+      z-index: 2000;
+    }
+    .overlay.active {
+      opacity: 1;
+      visibility: visible;
     }
 
-    /* --- イベント（予定）のデザイン --- */
-    .fc-event {
-      border: none !important;
-      margin: 1px 2px !important;
-      box-shadow: 0 1px 2px rgba(60,64,67,0.3); /* 浮き出し効果 */
-      border-radius: 4px !important; /* 角丸 */
+    .bottom-sheet {
+      position: fixed;
+      bottom: -100%; /* 初期状態は画面の外 */
+      left: 0;
+      width: 100%;
+      background: var(--modal-bg);
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+      transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2001;
+      max-height: 80vh; /* 画面の8割まで */
+      display: flex;
+      flex-direction: column;
+    }
+    .bottom-sheet.active {
+      bottom: 0; /* 出現 */
     }
 
-    /* イベントの中身 */
-    .fc-event-main {
-      background-color: var(--event-bg) !important; /* 基本の色 */
-      color: #fff !important;
-      padding: 2px 6px !important;
-      font-size: 12px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .sheet-header {
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+    }
+    /* 引き手（ハンドル） */
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background-color: #ddd;
+      border-radius: 2px;
     }
 
-    /* Googleカレンダーのような赤い帯にする場合（前回の要望） */
-    .fc-event-main {
-      background-color: #ea4335 !important; /* Google Red */
+    .sheet-content {
+      padding: 24px;
+      overflow-y: auto;
     }
 
-    /* 月のタイトル（マルチマンス用） */
-    .fc-multimonth-title {
-      font-size: 1.1em;
+    .event-detail-date {
+      font-size: 0.9em;
+      color: #5f6368;
+      margin-bottom: 8px;
+    }
+    .event-detail-title {
+      font-size: 1.4em;
       font-weight: bold;
-      color: var(--google-text);
-      padding: 10px 0;
+      color: #202124;
+      margin-bottom: 16px;
+      line-height: 1.4;
     }
+    .event-detail-link {
+      display: inline-block;
+      background-color: var(--google-blue);
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 0.95em;
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .event-detail-link:active {
+      background-color: #1660c4;
+    }
+    .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #5f6368;
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
 
   <div id='calendar'></div>
 
+  <div class="overlay" id="overlay"></div>
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-header">
+      <div class="sheet-handle"></div>
+      <button class="close-btn" id="closeBtn">×</button>
+    </div>
+    <div class="sheet-content">
+      <div class="event-detail-date" id="modalDate"></div>
+      <div class="event-detail-title" id="modalTitle"></div>
+      <a href="#" target="_blank" class="event-detail-link" id="modalLink">YouTubeで見る</a>
+    </div>
+  </div>
+
   <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxt5yqGKDgCmALZ7OROxOR4-XaDz2YCLRnlDTWFKxAMcu1BBafZEQVPAKBZBEqmdKrgBw/exec';
+
+    // モーダル操作用の要素取得
+    const overlay = document.getElementById('overlay');
+    const bottomSheet = document.getElementById('bottomSheet');
+    const modalDate = document.getElementById('modalDate');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalLink = document.getElementById('modalLink');
+    const closeBtn = document.getElementById('closeBtn');
+
+    // モーダルを開く関数
+    function openModal(title, dateStr, url) {
+      modalDate.textContent = dateStr;
+      modalTitle.textContent = title;
+      
+      if (url) {
+        modalLink.href = url;
+        modalLink.style.display = 'inline-block';
+      } else {
+        modalLink.style.display = 'none';
+      }
+
+      overlay.classList.add('active');
+      bottomSheet.classList.add('active');
+    }
+
+    // モーダルを閉じる関数
+    function closeModal() {
+      overlay.classList.remove('active');
+      bottomSheet.classList.remove('active');
+    }
+
+    // 背景タップや×ボタンで閉じる
+    overlay.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+
 
     document.addEventListener('DOMContentLoaded', function() {
       var calendarEl = document.getElementById('calendar');
 
       var calendar = new FullCalendar.Calendar(calendarEl, {
-        // ★ここが重要：縦スクロールで月を表示する設定
-        initialView: 'multiMonthYear', 
-        multiMonthMaxColumns: 1, // 1列にすることで縦積みリストにする
-        
+        initialView: 'multiMonthYear',
+        multiMonthMaxColumns: 1, // 縦1列表示（スクロール可能）
         locale: 'ja',
         
-        // ツールバーの設定
-        headerToolbar: {
-          left: 'today',
-          center: 'title',
-          right: 'prev,next' // 上下スクロールできるのでシンプルに
+        // ★重要：矢印ボタンの動作をカスタマイズ
+        customButtons: {
+          myPrev: {
+            text: '‹',
+            click: function() {
+              calendar.incrementDate({ months: -1 }); // 1ヶ月戻る
+            }
+          },
+          myNext: {
+            text: '›',
+            click: function() {
+              calendar.incrementDate({ months: 1 }); // 1ヶ月進む
+            }
+          }
         },
 
-        // イベントの表示設定
-        eventDisplay: 'block', // 強制的に帯表示にする
-        dayMaxEvents: true,    // 多すぎる場合は「+2」のように表示
+        headerToolbar: {
+          left: 'myPrev,myNext today', // カスタムボタンを配置
+          center: 'title',
+          right: '' // 右側は空にする（シンプル化）
+        },
 
-        // データの取得
+        eventDisplay: 'block',
+        dayMaxEvents: true,
+
+        // データ取得
         events: function(info, successCallback, failureCallback) {
           fetch(GAS_URL)
             .then(response => response.json())
             .then(data => {
-              console.log("Events loaded:", data);
               successCallback(data);
             })
             .catch(error => {
@@ -192,12 +281,16 @@
             });
         },
 
-        // クリック時の動作
+        // ★クリック時の動作変更：リンクを飛ばずにボトムシートを開く
         eventClick: function(info) {
-          info.jsEvent.preventDefault();
-          if (info.event.url) {
-            window.open(info.event.url, '_blank');
-          }
+          info.jsEvent.preventDefault(); // 勝手にYouTubeに飛ばないようにする
+          
+          // 日付のフォーマット (例: 2026年1月5日)
+          const dateObj = info.event.start;
+          const dateStr = dateObj.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+          
+          // モーダルを開く
+          openModal(info.event.title, dateStr, info.event.url);
         }
       });
 
@@ -206,7 +299,7 @@
 
     // PWA登録
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=3');
+      navigator.serviceWorker.register('sw.js?v=4');
     }
   </script>
 </body>
