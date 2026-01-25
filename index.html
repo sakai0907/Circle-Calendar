@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Musical Archive</title>
   <link rel="icon" href="./icon.png">
   <link rel="manifest" href="manifest.json">
@@ -12,360 +12,459 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
-    :root { --google-blue: #1a73e8; --google-red: #ea4335; --google-text: #3c4043; --modal-bg: #ffffff; }
-    body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; color: var(--google-text); background-color: #fff; overflow: hidden; }
-    #calendar { max-width: 100%; height: 100vh; margin: 0 auto; }
+    :root { --google-blue: #1a73e8; --text-color: #3c4043; --border-color: #dadce0; }
+    body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; color: var(--text-color); background: #fff; height: 100vh; display: flex; overflow: hidden; }
+
+    /* --- レイアウト: サイドバーとメイン --- */
+    .sidebar {
+      width: 250px;
+      background: #f8f9fa;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      overflow-y: auto;
+      flex-shrink: 0; /* 縮まないようにする */
+    }
+    .main-content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
     
-    .fc-header-toolbar { padding: 8px 16px !important; margin-bottom: 0 !important; background: #fff; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #dadce0; }
-    .fc-toolbar-title { font-size: 1.2em !important; font-weight: 500; }
-    .fc-event { border: none !important; margin: 1px 2px !important; box-shadow: 0 1px 2px rgba(60,64,67,0.3); cursor: pointer; }
-    .fc-event-main { color: #fff !important; padding: 2px 6px !important; font-size: 11px; font-weight: 500; border-radius: 4px; }
-    .fc-day-today .fc-daygrid-day-number { background-color: var(--google-blue); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; } /* スマホではサイドバー非表示（本来はハンバーガーメニュー推奨） */
+    }
 
-    /* FAB */
-    .fab-btn { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background-color: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--google-blue); cursor: pointer; z-index: 1500; transition: transform 0.2s; }
-    .fab-btn:active { transform: scale(0.95); background-color: #f1f3f4; }
+    /* バンド一覧 */
+    .band-list-header { font-weight: bold; margin-bottom: 12px; font-size: 1.1em; }
+    .band-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      cursor: default;
+      position: relative;
+    }
+    .band-item:hover { background: #e8f0fe; }
+    .band-color-dot {
+      width: 16px; height: 16px; border-radius: 50%; margin-right: 10px;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .band-name { font-size: 0.95em; flex: 1; }
+    
+    /* ホバー時のメンバー表示ツールチップ */
+    .band-item:hover::after {
+      content: attr(data-members);
+      position: absolute;
+      left: 100%;
+      top: 0;
+      background: #333;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 3000;
+      pointer-events: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
 
-    /* ボトムシート */
+    .btn-add-band {
+      margin-top: 12px;
+      background: transparent;
+      border: 1px dashed var(--border-color);
+      color: var(--google-blue);
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.9em;
+    }
+    .btn-add-band:hover { background: #f1f3f4; }
+
+    /* カレンダー本体 */
+    #calendar { height: 100vh; }
+    
+    /* 共通UI */
+    .fab-btn { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--google-blue); cursor: pointer; z-index: 1500; transition: transform 0.2s; }
+    .fab-btn:active { transform: scale(0.95); }
+
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: opacity 0.3s; z-index: 2000; }
     .overlay.active { opacity: 1; visibility: visible; }
-    .bottom-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: var(--modal-bg); border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -2px 10px rgba(0,0,0,0.2); transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2001; max-height: 85vh; display: flex; flex-direction: column; }
+    
+    .bottom-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: #fff; border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -2px 10px rgba(0,0,0,0.2); transition: bottom 0.3s ease; z-index: 2001; max-height: 90vh; display: flex; flex-direction: column; }
     .bottom-sheet.active { bottom: 0; }
-    .sheet-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
-    .sheet-content { padding: 20px; overflow-y: auto; padding-bottom: 40px;}
+    .sheet-content { padding: 20px; overflow-y: auto; padding-bottom: 40px; }
 
-    /* ボタン類 */
-    .close-btn { background: none; border: none; font-size: 24px; color: #5f6368; cursor: pointer; padding: 0 16px;}
-    .action-btn { border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; font-size: 14px;}
-    .btn-save { background: var(--google-blue); color: white; }
-    .btn-edit { background: #fff; color: #5f6368; border: 1px solid #dadce0; }
-    .btn-delete { background: #fff; color: #d93025; border: 1px solid #dadce0; }
-
-    /* フォーム */
     .input-group { margin-bottom: 16px; }
     .input-group label { display: block; font-size: 12px; color: #5f6368; margin-bottom: 4px; }
-    .input-field { width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #ddd; font-size: 16px; outline: none; box-sizing: border-box; background: transparent;}
+    .input-field { width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #ddd; font-size: 16px; outline: none; background: transparent; }
     .input-field:focus { border-bottom: 2px solid var(--google-blue); }
-    textarea.input-field { resize: none; height: 60px; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-top: 4px;}
-    
-    /* 日付・時間選択用 */
-    .datetime-row { display: flex; gap: 10px; align-items: center; }
-    .date-input { flex: 2; }
-    .time-select { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #fff; font-size: 14px;}
 
-    /* 色選択 */
-    .color-options { display: flex; gap: 12px; margin-top: 8px; }
+    /* 時間ショートカットボタン */
+    .time-presets { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      background: #f1f3f4;
+      cursor: pointer;
+      color: #3c4043;
+    }
+    .preset-btn:hover { background: #e8f0fe; border-color: var(--google-blue); color: var(--google-blue); }
+
+    /* 色選択（バンドベース） */
+    .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 10px; margin-top: 8px; }
+    .color-option { text-align: center; cursor: pointer; }
+    .color-circle { width: 32px; height: 32px; border-radius: 50%; margin: 0 auto; position: relative; border: 2px solid transparent;}
     .color-radio { display: none; }
-    .color-circle { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; position: relative;}
     .color-radio:checked + .color-circle { border-color: #5f6368; transform: scale(1.1); }
     .color-radio:checked + .color-circle::after { content: '✓'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; }
+    .color-label { font-size: 10px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* その他ボタン */
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+    .action-btn { border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; font-size: 14px; }
+    .btn-save { background: var(--google-blue); color: white; }
+    .btn-delete { background: #fff; color: #d93025; border: 1px solid #dadce0; }
   </style>
 </head>
 <body>
 
-  <div id='calendar'></div>
-  <div class="fab-btn" id="fabBtn">＋</div>
+  <div class="sidebar">
+    <div class="band-list-header">バンド一覧</div>
+    <div id="bandListContainer">
+      </div>
+    <button class="btn-add-band" onclick="openBandForm()">＋ バンドを追加</button>
+  </div>
+
+  <div class="main-content">
+    <div id='calendar'></div>
+    <div class="fab-btn" id="fabBtn">＋</div>
+  </div>
+
   <div class="overlay" id="overlay"></div>
 
-  <div class="bottom-sheet" id="detailSheet">
-    <div class="sheet-header">
-      <button class="close-btn" onclick="closeAllSheets()">×</button>
-      <div>
-        <button class="action-btn btn-edit" id="btnEdit">編集</button>
-        <button class="action-btn btn-delete" id="btnDelete">削除</button>
-      </div>
-    </div>
+  <div class="bottom-sheet" id="bandSheet">
     <div class="sheet-content">
-      <div style="font-size:0.9em; color:#5f6368; margin-bottom:8px;" id="detailDate"></div>
-      <div style="font-size:1.4em; font-weight:bold; margin-bottom:16px;" id="detailTitle"></div>
-      <div style="margin-bottom:16px;" id="detailMemo"></div>
-      <div style="margin-bottom:16px; color:#5f6368;" id="detailLocation"></div>
-      <a href="#" target="_blank" style="display:none; background:var(--google-blue); color:white; text-decoration:none; padding:10px 20px; border-radius:24px;" id="detailLink">YouTubeで見る</a>
+      <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+        <button class="close-btn" onclick="closeAllSheets()">×</button>
+        <span style="font-weight:bold; font-size:1.2em;">バンド追加</span>
+        <button class="action-btn btn-save" id="saveBandBtn">保存</button>
+      </div>
+      <div class="input-group">
+        <label>バンド名</label>
+        <input type="text" id="bandName" class="input-field" placeholder="例: スピッツバンド">
+      </div>
+      <div class="input-group">
+        <label>メンバー (カンマ区切り)</label>
+        <input type="text" id="bandMembers" class="input-field" placeholder="例: 佐藤, 田中, 鈴木">
+      </div>
+      <div class="input-group">
+        <label>イメージカラー</label>
+        <input type="color" id="bandColor" value="#ea4335" style="width:100%; height:40px; border:none;">
+      </div>
     </div>
   </div>
 
-  <div class="bottom-sheet" id="addSheet">
-    <div class="sheet-header">
-      <button class="close-btn" onclick="closeAllSheets()">×</button>
-      <div style="font-weight:bold;" id="formTitle">予定を追加</div>
-      <button class="action-btn btn-save" id="saveBtn">保存</button>
-    </div>
+  <div class="bottom-sheet" id="eventSheet">
     <div class="sheet-content">
-      <input type="hidden" id="editEventId"> <div class="input-group">
-        <input type="text" id="inputTitle" class="input-field" placeholder="タイトルを入力" required>
+      <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+        <button class="close-btn" onclick="closeAllSheets()">×</button>
+        <span style="font-weight:bold; font-size:1.2em;" id="eventFormTitle">予定を追加</span>
+        <div>
+           <button class="action-btn btn-delete" id="deleteEventBtn" style="display:none;">削除</button>
+           <button class="action-btn btn-save" id="saveEventBtn">保存</button>
+        </div>
+      </div>
+      
+      <input type="hidden" id="eventId">
+
+      <div class="input-group">
+        <input type="text" id="eventTitle" class="input-field" placeholder="タイトル" style="font-size:1.4em;">
       </div>
 
       <div class="input-group">
-        <label>色を選択</label>
-        <div class="color-options">
-          <label><input type="radio" name="color" value="#ea4335" class="color-radio" checked><div class="color-circle" style="background:#ea4335;"></div></label>
-          <label><input type="radio" name="color" value="#7986cb" class="color-radio"><div class="color-circle" style="background:#7986cb;"></div></label>
-          <label><input type="radio" name="color" value="#33b679" class="color-radio"><div class="color-circle" style="background:#33b679;"></div></label>
-          <label><input type="radio" name="color" value="#f4511e" class="color-radio"><div class="color-circle" style="background:#f4511e;"></div></label>
-          <label><input type="radio" name="color" value="#039be5" class="color-radio"><div class="color-circle" style="background:#039be5;"></div></label>
+        <label>クイック時間選択</label>
+        <div class="time-presets">
+          <button class="preset-btn" onclick="applyPreset('16:45','18:00')">5限</button>
+          <button class="preset-btn" onclick="applyPreset('18:00','19:00')">① 18-19</button>
+          <button class="preset-btn" onclick="applyPreset('19:00','20:00')">② 19-20</button>
+          <button class="preset-btn" onclick="applyPreset('20:00','21:00')">③ 20-21</button>
         </div>
       </div>
 
-      <div class="input-group">
-        <label>開始</label>
-        <div class="datetime-row">
-          <input type="date" id="startDate" class="input-field date-input">
-          <select id="startTime" class="time-select"></select>
+      <div class="input-group" style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <label>開始</label>
+          <input type="date" id="startDate" class="input-field">
+          <input type="time" id="startTime" class="input-field">
         </div>
-      </div>
-      <div class="input-group">
-        <label>終了</label>
-        <div class="datetime-row">
-          <input type="date" id="endDate" class="input-field date-input">
-          <select id="endTime" class="time-select"></select>
+        <div style="flex:1;">
+          <label>終了</label>
+          <input type="date" id="endDate" class="input-field">
+          <input type="time" id="endTime" class="input-field">
         </div>
       </div>
 
       <div class="input-group">
         <label>場所</label>
-        <input type="text" id="inputLocation" class="input-field" placeholder="場所を追加">
+        <input type="text" id="eventLocation" class="input-field" placeholder="スタジオA">
       </div>
       <div class="input-group">
         <label>メモ</label>
-        <textarea id="inputMemo" class="input-field" placeholder="メモを追加"></textarea>
+        <textarea id="eventMemo" class="input-field" style="height:60px;" placeholder="メモ"></textarea>
+      </div>
+
+      <div class="input-group">
+        <label>バンド/色を選択</label>
+        <div class="color-grid" id="colorContainer">
+          </div>
       </div>
     </div>
   </div>
 
   <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxt5yqGKDgCmALZ7OROxOR4-XaDz2YCLRnlDTWFKxAMcu1BBafZEQVPAKBZBEqmdKrgBw/exec';
+    
+    // グローバル変数
+    let allEvents = [];
+    let allBands = [];
+    let currentEvent = null;
 
-    const overlay = document.getElementById('overlay');
-    const detailSheet = document.getElementById('detailSheet');
-    const addSheet = document.getElementById('addSheet');
-    let currentEvent = null; // 現在表示中のイベント情報を保持
-
-    // 15分刻みの時間を生成する関数
-    function populateTimeSelects() {
-      const times = [];
-      for (let h = 0; h < 24; h++) {
-        for (let m = 0; m < 60; m += 15) {
-          const hh = h.toString().padStart(2, '0');
-          const mm = m.toString().padStart(2, '0');
-          times.push(`${hh}:${mm}`);
-        }
-      }
-      const options = times.map(t => `<option value="${t}">${t}</option>`).join('');
-      document.getElementById('startTime').innerHTML = options;
-      document.getElementById('endTime').innerHTML = options;
-    }
-    populateTimeSelects(); // 初期化時に実行
-
+    // --- ユーティリティ ---
     function closeAllSheets() {
-      overlay.classList.remove('active');
-      detailSheet.classList.remove('active');
-      addSheet.classList.remove('active');
-      currentEvent = null;
+      document.getElementById('overlay').classList.remove('active');
+      document.getElementById('bandSheet').classList.remove('active');
+      document.getElementById('eventSheet').classList.remove('active');
     }
-    overlay.addEventListener('click', closeAllSheets);
+    document.getElementById('overlay').addEventListener('click', closeAllSheets);
 
-    // 詳細表示
-    function openDetail(event) {
-      currentEvent = event; // 編集・削除用に保持
+    // --- バンド関連処理 ---
+    function renderBandList() {
+      const container = document.getElementById('bandListContainer');
+      const colorContainer = document.getElementById('colorContainer');
       
-      const start = event.start;
-      const end = event.end;
-      const dateStr = start.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
-      const timeStr = start.toLocaleTimeString('ja-JP', { hour: '2-digit', minute:'2-digit' }) + 
-                      (end ? ' - ' + end.toLocaleTimeString('ja-JP', { hour: '2-digit', minute:'2-digit' }) : '');
+      container.innerHTML = '';
+      colorContainer.innerHTML = '';
 
-      document.getElementById('detailDate').textContent = `${dateStr} ${timeStr}`;
-      document.getElementById('detailTitle').textContent = event.title;
-      document.getElementById('detailMemo').textContent = event.extendedProps.memo || '';
-      document.getElementById('detailLocation').textContent = event.extendedProps.location ? '📍 ' + event.extendedProps.location : '';
+      // デフォルト色（その他用）
+      const defaultColorHtml = `
+        <label class="color-option">
+          <input type="radio" name="eventColor" value="#ea4335" class="color-radio" checked>
+          <div class="color-circle" style="background:#ea4335;"></div>
+          <div class="color-label">その他</div>
+        </label>`;
+      colorContainer.innerHTML += defaultColorHtml;
 
-      const linkBtn = document.getElementById('detailLink');
-      if (event.url) {
-        linkBtn.href = event.url;
-        linkBtn.style.display = 'inline-block';
-      } else {
-        linkBtn.style.display = 'none';
+      allBands.forEach(band => {
+        // サイドバー一覧
+        const div = document.createElement('div');
+        div.className = 'band-item';
+        div.dataset.members = band.members || 'メンバー未登録';
+        div.innerHTML = `<div class="band-color-dot" style="background:${band.color}"></div><div class="band-name">${band.name}</div>`;
+        container.appendChild(div);
+
+        // 予定追加時の色選択肢
+        const radioHtml = `
+          <label class="color-option">
+            <input type="radio" name="eventColor" value="${band.color}" class="color-radio">
+            <div class="color-circle" style="background:${band.color};"></div>
+            <div class="color-label">${band.name}</div>
+          </label>`;
+        colorContainer.innerHTML += radioHtml;
+      });
+    }
+
+    function openBandForm() {
+      closeAllSheets();
+      document.getElementById('overlay').classList.add('active');
+      document.getElementById('bandSheet').classList.add('active');
+    }
+
+    document.getElementById('saveBandBtn').addEventListener('click', () => {
+      const name = document.getElementById('bandName').value;
+      const members = document.getElementById('bandMembers').value;
+      const color = document.getElementById('bandColor').value;
+      if(!name) { alert('バンド名は必須です'); return; }
+
+      sendToGAS({ target: 'band', action: 'create', name, members, color });
+    });
+
+    // --- 予定関連処理 ---
+    
+    // 時間プリセット適用
+    window.applyPreset = function(startT, endT) {
+      document.getElementById('startTime').value = startT;
+      document.getElementById('endTime').value = endT;
+      
+      // 日付が空なら今日を入れる
+      if(!document.getElementById('startDate').value) {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
       }
+    };
 
-      overlay.classList.add('active');
-      detailSheet.classList.add('active');
-    }
-
-    // 追加・編集フォームを開く
-    function openForm(isEdit = false, dateStr = null) {
-      closeAllSheets(); // 一旦閉じる
+    function openEventForm(isEdit = false, dateStr = null, eventObj = null) {
+      closeAllSheets();
       
-      const titleLabel = document.getElementById('formTitle');
-      const idInput = document.getElementById('editEventId');
+      // 1. フォームリセット
+      document.getElementById('eventTitle').value = '';
+      document.getElementById('eventLocation').value = '';
+      document.getElementById('eventMemo').value = '';
+      document.getElementById('deleteEventBtn').style.display = 'none';
       
-      if (isEdit && currentEvent) {
-        // 編集モード：既存データを入れる
-        titleLabel.textContent = '予定を編集';
-        idInput.value = currentEvent.id;
-        document.getElementById('inputTitle').value = currentEvent.title;
-        document.getElementById('inputLocation').value = currentEvent.extendedProps.location || '';
-        document.getElementById('inputMemo').value = currentEvent.extendedProps.memo || '';
-        
-        // 色を選択
-        const color = currentEvent.backgroundColor;
-        const radios = document.getElementsByName('color');
-        radios.forEach(r => r.checked = (r.value === color));
+      // デフォルト色の選択
+      const radios = document.getElementsByName('eventColor');
+      if(radios.length > 0) radios[0].checked = true;
 
-        // 日時を分解してセット
-        const s = currentEvent.start;
-        const e = currentEvent.end || new Date(s.getTime() + 60*60*1000); // 終了なければ1時間後
+      // 2. 編集モードの場合のデータ注入（修正点：確実にデータを入れる）
+      if (isEdit && eventObj) {
+        document.getElementById('eventFormTitle').textContent = '予定を編集';
+        document.getElementById('eventId').value = eventObj.id;
+        document.getElementById('deleteEventBtn').style.display = 'inline-block';
         
-        document.getElementById('startDate').value = toDateInputValue(s);
-        document.getElementById('startTime').value = toTimeInputValue(s);
-        document.getElementById('endDate').value = toDateInputValue(e);
-        document.getElementById('endTime').value = toTimeInputValue(e);
+        document.getElementById('eventTitle').value = eventObj.title;
+        document.getElementById('eventLocation').value = eventObj.extendedProps.location || '';
+        document.getElementById('eventMemo').value = eventObj.extendedProps.memo || '';
+
+        // 日時
+        const s = eventObj.start;
+        const e = eventObj.end || new Date(s.getTime() + 60*60*1000);
+        document.getElementById('startDate').value = toDateStr(s);
+        document.getElementById('startTime').value = toTimeStr(s);
+        document.getElementById('endDate').value = toDateStr(e);
+        document.getElementById('endTime').value = toTimeStr(e);
+
+        // 色選択
+        for(let r of radios) {
+          if(r.value === eventObj.backgroundColor) r.checked = true;
+        }
 
       } else {
-        // 新規作成モード
-        titleLabel.textContent = '予定を追加';
-        idInput.value = ''; // 新規フラグ
-        document.getElementById('inputTitle').value = '';
-        document.getElementById('inputLocation').value = '';
-        document.getElementById('inputMemo').value = '';
+        // 3. 新規モード
+        document.getElementById('eventFormTitle').textContent = '予定を追加';
+        document.getElementById('eventId').value = '';
         
         // 日時の初期値
-        const now = dateStr ? new Date(dateStr) : new Date();
-        // 時間を現在時刻に近い15分刻みに丸めるなど調整しても良いが、ここではシンプルに9:00固定などで
-        if(dateStr) {
-            document.getElementById('startDate').value = dateStr;
-            document.getElementById('startTime').value = "09:00";
-            document.getElementById('endDate').value = dateStr;
-            document.getElementById('endTime').value = "10:00";
-        } else {
-            const today = toDateInputValue(new Date());
-            document.getElementById('startDate').value = today;
-            document.getElementById('startTime').value = "09:00";
-            document.getElementById('endDate').value = today;
-            document.getElementById('endTime').value = "10:00";
-        }
+        const baseDate = dateStr ? new Date(dateStr) : new Date();
+        document.getElementById('startDate').value = toDateStr(baseDate);
+        document.getElementById('startTime').value = '09:00'; // デフォルト時間
+        document.getElementById('endDate').value = toDateStr(baseDate);
+        document.getElementById('endTime').value = '10:00';
       }
 
-      overlay.classList.add('active');
-      addSheet.classList.add('active');
+      document.getElementById('overlay').classList.add('active');
+      document.getElementById('eventSheet').classList.add('active');
     }
 
-    // 日付オブジェクトを input type="date" 用の文字列(yyyy-mm-dd)に変換
-    function toDateInputValue(date) {
-      if (!date) return '';
-      const year = date.getFullYear();
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const day = date.getDate().toString().padStart(2, '0');
+    // ユーティリティ: Date -> "YYYY-MM-DD"
+    function toDateStr(d) {
+      if(!d) return '';
+      const year = d.getFullYear();
+      const month = ('0' + (d.getMonth() + 1)).slice(-2);
+      const day = ('0' + d.getDate()).slice(-2);
       return `${year}-${month}-${day}`;
     }
-    // 時間をHH:mm形式に
-    function toTimeInputValue(date) {
-        if (!date) return '09:00';
-        const h = date.getHours().toString().padStart(2, '0');
-        let m = date.getMinutes();
-        // 15分刻みに合わせる（簡易的）
-        m = Math.round(m / 15) * 15;
-        if (m === 60) m = 0; // 繰り上がりは省略（厳密には日時またぎの処理が必要だが今回は簡易版）
-        return `${h}:${m.toString().padStart(2, '0')}`;
+    // ユーティリティ: Date -> "HH:mm"
+    function toTimeStr(d) {
+      if(!d) return '00:00';
+      const h = ('0' + d.getHours()).slice(-2);
+      const m = ('0' + d.getMinutes()).slice(-2);
+      return `${h}:${m}`;
     }
 
-    // 保存処理（追加・更新）
-    document.getElementById('saveBtn').addEventListener('click', function() {
-      const id = document.getElementById('editEventId').value;
-      const title = document.getElementById('inputTitle').value;
+    // 保存
+    document.getElementById('saveEventBtn').addEventListener('click', () => {
+      const id = document.getElementById('eventId').value;
+      const title = document.getElementById('eventTitle').value;
       if(!title) { alert('タイトルを入力してください'); return; }
 
-      const startDate = document.getElementById('startDate').value;
-      const startTime = document.getElementById('startTime').value;
-      const endDate = document.getElementById('endDate').value;
-      const endTime = document.getElementById('endTime').value;
+      const sD = document.getElementById('startDate').value;
+      const sT = document.getElementById('startTime').value;
+      const eD = document.getElementById('endDate').value;
+      const eT = document.getElementById('endTime').value;
+      const color = document.querySelector('input[name="eventColor"]:checked')?.value || '#ea4335';
 
-      const fullStart = `${startDate} ${startTime}`;
-      const fullEnd = `${endDate} ${endTime}`;
-
-      const postData = {
-        action: id ? 'update' : 'create', // IDがあれば更新、なければ新規
+      const data = {
+        target: 'event',
+        action: id ? 'update' : 'create',
         id: id,
         title: title,
-        start: fullStart,
-        end: fullEnd,
-        location: document.getElementById('inputLocation').value,
-        memo: document.getElementById('inputMemo').value,
-        color: document.querySelector('input[name="color"]:checked').value
+        start: `${sD} ${sT}`,
+        end: `${eD} ${eT}`,
+        location: document.getElementById('eventLocation').value,
+        memo: document.getElementById('eventMemo').value,
+        color: color
       };
-
-      sendToGAS(postData);
+      sendToGAS(data);
     });
 
-    // 削除処理
-    document.getElementById('btnDelete').addEventListener('click', function() {
-      if(!currentEvent || !confirm('本当に削除しますか？')) return;
-      
-      sendToGAS({
-        action: 'delete',
-        id: currentEvent.id
-      });
+    document.getElementById('deleteEventBtn').addEventListener('click', () => {
+      if(!confirm('削除しますか？')) return;
+      const id = document.getElementById('eventId').value;
+      sendToGAS({ target: 'event', action: 'delete', id: id });
     });
 
-    // 編集ボタン
-    document.getElementById('btnEdit').addEventListener('click', function() {
-      openForm(true);
-    });
-
-    // GAS送信共通関数
+    // --- 通信処理 ---
     function sendToGAS(data) {
-      const btn = data.action === 'delete' ? document.getElementById('btnDelete') : document.getElementById('saveBtn');
-      const originalText = btn.textContent;
-      btn.textContent = '処理中...';
-      btn.disabled = true;
+      const btns = document.querySelectorAll('button');
+      btns.forEach(b => b.disabled = true); // 連打防止
 
       fetch(GAS_URL, {
         method: 'POST',
         body: JSON.stringify(data)
       })
       .then(res => res.json())
-      .then(json => {
-        // ★リロードして反映させる
-        location.reload();
-      })
-      .catch(err => {
+      .then(() => location.reload())
+      .catch(e => {
         alert('エラーが発生しました');
-        btn.textContent = originalText;
-        btn.disabled = false;
+        console.error(e);
+        btns.forEach(b => b.disabled = false);
       });
     }
 
-    // カレンダー初期化
+    // --- 初期化 ---
     document.addEventListener('DOMContentLoaded', function() {
+      // カレンダー設定
       var calendarEl = document.getElementById('calendar');
       var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'multiMonthYear',
         multiMonthMaxColumns: 1,
         locale: 'ja',
-        customButtons: {
-          myPrev: { text: '‹', click: () => calendar.incrementDate({ months: -1 }) },
-          myNext: { text: '›', click: () => calendar.incrementDate({ months: 1 }) }
-        },
-        headerToolbar: { left: 'myPrev,myNext today', center: 'title', right: '' },
+        headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
         eventDisplay: 'block',
-        dayMaxEvents: true,
-
+        
         dateClick: function(info) {
-          openForm(false, info.dateStr);
+          openEventForm(false, info.dateStr);
         },
         eventClick: function(info) {
           info.jsEvent.preventDefault();
-          openDetail(info.event);
+          openEventForm(true, null, info.event); // 編集モードで開く
         },
         events: function(info, success, failure) {
-          fetch(GAS_URL).then(r => r.json()).then(d => success(d)).catch(e => failure(e));
+          fetch(GAS_URL)
+            .then(r => r.json())
+            .then(data => {
+              allEvents = data.events;
+              allBands = data.bands;
+              
+              renderBandList(); // バンド一覧更新
+              success(allEvents); // カレンダー描画
+            })
+            .catch(e => failure(e));
         }
       });
       calendar.render();
-      
-      document.getElementById('fabBtn').addEventListener('click', () => openForm(false));
+
+      document.getElementById('fabBtn').addEventListener('click', () => openEventForm(false));
     });
 
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=6');
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=7');
   </script>
 </body>
 </html>
