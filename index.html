@@ -322,12 +322,20 @@
       const radios = document.getElementsByName('eventColor');
       if(radios.length > 0) radios[0].checked = true;
 
-      // 2. 編集モードの場合のデータ注入（修正点：確実にデータを入れる）
+      // 2. 編集モードの場合のデータ注入
       if (isEdit && eventObj) {
-        document.getElementById('eventFormTitle').textContent = '予定を編集';
-        document.getElementById('eventId').value = eventObj.id;
-        document.getElementById('deleteEventBtn').style.display = 'inline-block';
         
+        if (eventObj.id && String(eventObj.id).startsWith('vid_')) {
+             document.getElementById('eventFormTitle').textContent = '動画の詳細';
+             document.getElementById('deleteEventBtn').style.display = 'none'; // 削除ボタンを隠す
+             document.getElementById('saveEventBtn').style.display = 'none';   // 保存ボタンを隠す
+        } else {
+             document.getElementById('eventFormTitle').textContent = '予定を編集';
+             document.getElementById('deleteEventBtn').style.display = 'inline-block'; // 削除ボタンを表示
+             document.getElementById('saveEventBtn').style.display = 'inline-block';   // 保存ボタンを表示
+        }
+        
+        document.getElementById('eventId').value = eventObj.id;
         document.getElementById('eventTitle').value = eventObj.title;
         document.getElementById('eventLocation').value = eventObj.extendedProps.location || '';
         document.getElementById('eventMemo').value = eventObj.extendedProps.memo || '';
@@ -468,3 +476,4 @@
   </script>
 </body>
 </html>
+
