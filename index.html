@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Musical Archive</title>
   <link rel="icon" href="./icon.png">
   <link rel="manifest" href="manifest.json">
@@ -12,171 +12,72 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
-    /* --- 基本デザイン --- */
     :root {
       --google-blue: #1a73e8;
+      --google-red: #ea4335;
       --google-text: #3c4043;
-      --google-grid: #dadce0;
-      --event-bg: #ea4335; /* Google Red */
       --modal-bg: #ffffff;
     }
-
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Roboto', sans-serif;
-      color: var(--google-text);
-      background-color: #fff;
-      overflow: hidden; /* モーダル表示時に背景がスクロールしないように */
-    }
-
-    #calendar {
-      max-width: 100%;
-      height: 100vh;
-      margin: 0 auto;
-    }
-
+    body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; color: var(--google-text); background-color: #fff; overflow: hidden; }
+    #calendar { max-width: 100%; height: 100vh; margin: 0 auto; }
+    
     /* ツールバー */
-    .fc-header-toolbar {
-      padding: 8px 16px !important;
-      margin-bottom: 0 !important;
-      background: #fff;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      border-bottom: 1px solid var(--google-grid);
-    }
-    .fc-toolbar-title {
-      font-size: 1.2em !important;
-      font-weight: 500;
-    }
+    .fc-header-toolbar { padding: 8px 16px !important; margin-bottom: 0 !important; background: #fff; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #dadce0; }
+    .fc-toolbar-title { font-size: 1.2em !important; font-weight: 500; }
+    
+    /* イベント */
+    .fc-event { border: none !important; margin: 1px 2px !important; box-shadow: 0 1px 2px rgba(60,64,67,0.3); cursor: pointer; }
+    .fc-event-main { color: #fff !important; padding: 2px 6px !important; font-size: 11px; font-weight: 500; border-radius: 4px; }
+    .fc-day-today .fc-daygrid-day-number { background-color: var(--google-blue); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
 
-    /* イベントデザイン */
-    .fc-event {
-      border: none !important;
-      margin: 1px 2px !important;
-      box-shadow: 0 1px 2px rgba(60,64,67,0.3);
-      cursor: pointer;
-    }
-    .fc-event-main {
-      background-color: var(--event-bg) !important;
-      color: #fff !important;
-      padding: 2px 6px !important;
-      font-size: 11px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      border-radius: 4px;
-    }
-
-    /* 土日の色 */
-    .fc-day-sat { background-color: #fafafa; color: #1a73e8; }
-    .fc-day-sun { background-color: #fafafa; color: #ea4335; }
-    .fc-day-today .fc-daygrid-day-number {
-      background-color: var(--google-blue);
-      color: white;
+    /* --- 右下の＋ボタン (FAB) --- */
+    .fab-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background-color: #fff;
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    /* --- ボトムシート（下から出るタブ）のデザイン --- */
-    .overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s;
-      z-index: 2000;
-    }
-    .overlay.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .bottom-sheet {
-      position: fixed;
-      bottom: -100%; /* 初期状態は画面の外 */
-      left: 0;
-      width: 100%;
-      background: var(--modal-bg);
-      border-top-left-radius: 16px;
-      border-top-right-radius: 16px;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-      transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      z-index: 2001;
-      max-height: 80vh; /* 画面の8割まで */
-      display: flex;
-      flex-direction: column;
-    }
-    .bottom-sheet.active {
-      bottom: 0; /* 出現 */
-    }
-
-    .sheet-header {
-      padding: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-bottom: 1px solid #eee;
-    }
-    /* 引き手（ハンドル） */
-    .sheet-handle {
-      width: 40px;
-      height: 4px;
-      background-color: #ddd;
-      border-radius: 2px;
-    }
-
-    .sheet-content {
-      padding: 24px;
-      overflow-y: auto;
-    }
-
-    .event-detail-date {
-      font-size: 0.9em;
-      color: #5f6368;
-      margin-bottom: 8px;
-    }
-    .event-detail-title {
-      font-size: 1.4em;
-      font-weight: bold;
-      color: #202124;
-      margin-bottom: 16px;
-      line-height: 1.4;
-    }
-    .event-detail-link {
-      display: inline-block;
-      background-color: var(--google-blue);
-      color: white;
-      text-decoration: none;
-      padding: 10px 20px;
-      border-radius: 24px;
-      font-size: 0.95em;
-      font-weight: 500;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
-    .event-detail-link:active {
-      background-color: #1660c4;
-    }
-    .close-btn {
-      position: absolute;
-      top: 12px;
-      right: 16px;
-      background: none;
-      border: none;
-      font-size: 24px;
-      color: #5f6368;
+      font-size: 32px;
+      color: var(--google-blue); /* Googleカラーのプラス */
       cursor: pointer;
+      z-index: 1500;
+      user-select: none;
+      transition: transform 0.2s;
     }
+    .fab-btn:active { transform: scale(0.95); background-color: #f1f3f4; }
+    /* Googleのカレンダーアイコン風の4色プラス記号を作るのは複雑なので、シンプルに青色で実装 */
+
+    /* --- ボトムシート共通 --- */
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: opacity 0.3s; z-index: 2000; }
+    .overlay.active { opacity: 1; visibility: visible; }
+    .bottom-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: var(--modal-bg); border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -2px 10px rgba(0,0,0,0.2); transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2001; max-height: 85vh; display: flex; flex-direction: column; }
+    .bottom-sheet.active { bottom: 0; }
+    .sheet-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+    .sheet-handle { width: 40px; height: 4px; background-color: #ddd; border-radius: 2px; position: absolute; left: 50%; transform: translateX(-50%); top: 8px;}
+    .close-btn { background: none; border: none; font-size: 24px; color: #5f6368; cursor: pointer; padding: 0 16px;}
+    .save-btn { background: var(--google-blue); color: white; border: none; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-right: 8px;}
+    .sheet-content { padding: 20px; overflow-y: auto; padding-bottom: 40px;}
+
+    /* 入力フォームのスタイル */
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-size: 12px; color: #5f6368; margin-bottom: 4px; }
+    .input-field { width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid #ddd; font-size: 16px; outline: none; box-sizing: border-box; }
+    .input-field:focus { border-bottom: 2px solid var(--google-blue); }
+    textarea.input-field { resize: none; height: 60px; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-top: 4px;}
+
+    /* 色選択 */
+    .color-options { display: flex; gap: 12px; margin-top: 8px; }
+    .color-radio { display: none; }
+    .color-circle { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; position: relative;}
+    .color-radio:checked + .color-circle { border-color: #5f6368; transform: scale(1.1); }
+    /* チェックマーク */
+    .color-radio:checked + .color-circle::after { content: '✓'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; }
 
   </style>
 </head>
@@ -184,123 +85,222 @@
 
   <div id='calendar'></div>
 
+  <div class="fab-btn" id="fabBtn">＋</div>
+
   <div class="overlay" id="overlay"></div>
-  <div class="bottom-sheet" id="bottomSheet">
+
+  <div class="bottom-sheet" id="detailSheet">
     <div class="sheet-header">
       <div class="sheet-handle"></div>
-      <button class="close-btn" id="closeBtn">×</button>
+      <div style="flex:1"></div> <button class="close-btn" onclick="closeAllSheets()">×</button>
     </div>
     <div class="sheet-content">
-      <div class="event-detail-date" id="modalDate"></div>
-      <div class="event-detail-title" id="modalTitle"></div>
-      <a href="#" target="_blank" class="event-detail-link" id="modalLink">YouTubeで見る</a>
+      <div style="font-size:0.9em; color:#5f6368; margin-bottom:8px;" id="detailDate"></div>
+      <div style="font-size:1.4em; font-weight:bold; margin-bottom:16px;" id="detailTitle"></div>
+      <div style="margin-bottom:16px;" id="detailMemo"></div>
+      <div style="margin-bottom:16px; color:#5f6368;" id="detailLocation"></div>
+      <a href="#" target="_blank" style="display:inline-block; background:var(--google-blue); color:white; text-decoration:none; padding:10px 20px; border-radius:24px;" id="detailLink">YouTubeで見る</a>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="addSheet">
+    <div class="sheet-header">
+      <button class="close-btn" onclick="closeAllSheets()">×</button>
+      <div style="font-weight:bold;">予定を追加</div>
+      <button class="save-btn" id="saveBtn">保存</button>
+    </div>
+    <div class="sheet-content">
+      <div class="input-group">
+        <input type="text" id="inputTitle" class="input-field" placeholder="タイトルを入力" required>
+      </div>
+
+      <div class="input-group">
+        <label>色を選択</label>
+        <div class="color-options">
+          <label><input type="radio" name="color" value="#ea4335" class="color-radio" checked><div class="color-circle" style="background:#ea4335;"></div></label> <label><input type="radio" name="color" value="#7986cb" class="color-radio"><div class="color-circle" style="background:#7986cb;"></div></label> <label><input type="radio" name="color" value="#33b679" class="color-radio"><div class="color-circle" style="background:#33b679;"></div></label> <label><input type="radio" name="color" value="#f4511e" class="color-radio"><div class="color-circle" style="background:#f4511e;"></div></label> <label><input type="radio" name="color" value="#039be5" class="color-radio"><div class="color-circle" style="background:#039be5;"></div></label> </div>
+      </div>
+
+      <div class="input-group" style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <label>開始日時</label>
+          <input type="datetime-local" id="inputStart" class="input-field">
+        </div>
+        <div style="flex:1;">
+          <label>終了日時</label>
+          <input type="datetime-local" id="inputEnd" class="input-field">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>場所</label>
+        <input type="text" id="inputLocation" class="input-field" placeholder="場所を追加">
+      </div>
+
+      <div class="input-group">
+        <label>メモ</label>
+        <textarea id="inputMemo" class="input-field" placeholder="メモを追加"></textarea>
+      </div>
     </div>
   </div>
 
   <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxt5yqGKDgCmALZ7OROxOR4-XaDz2YCLRnlDTWFKxAMcu1BBafZEQVPAKBZBEqmdKrgBw/exec';
 
-    // モーダル操作用の要素取得
     const overlay = document.getElementById('overlay');
-    const bottomSheet = document.getElementById('bottomSheet');
-    const modalDate = document.getElementById('modalDate');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalLink = document.getElementById('modalLink');
-    const closeBtn = document.getElementById('closeBtn');
+    const detailSheet = document.getElementById('detailSheet');
+    const addSheet = document.getElementById('addSheet');
+    
+    // シートを閉じる
+    function closeAllSheets() {
+      overlay.classList.remove('active');
+      detailSheet.classList.remove('active');
+      addSheet.classList.remove('active');
+    }
+    overlay.addEventListener('click', closeAllSheets);
 
-    // モーダルを開く関数
-    function openModal(title, dateStr, url) {
-      modalDate.textContent = dateStr;
-      modalTitle.textContent = title;
+    // 詳細表示を開く
+    function openDetail(event) {
+      const dateStr = event.start.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+      document.getElementById('detailDate').textContent = dateStr;
+      document.getElementById('detailTitle').textContent = event.title;
       
-      if (url) {
-        modalLink.href = url;
-        modalLink.style.display = 'inline-block';
+      const memo = event.extendedProps.memo || '';
+      const location = event.extendedProps.location || '';
+      
+      document.getElementById('detailMemo').textContent = memo;
+      document.getElementById('detailLocation').textContent = location ? '📍 ' + location : '';
+      
+      const linkBtn = document.getElementById('detailLink');
+      if (event.url) {
+        linkBtn.href = event.url;
+        linkBtn.style.display = 'inline-block';
+        linkBtn.textContent = 'YouTubeで見る';
       } else {
-        modalLink.style.display = 'none';
+        linkBtn.style.display = 'none';
       }
 
       overlay.classList.add('active');
-      bottomSheet.classList.add('active');
+      detailSheet.classList.add('active');
     }
 
-    // モーダルを閉じる関数
-    function closeModal() {
-      overlay.classList.remove('active');
-      bottomSheet.classList.remove('active');
+    // 追加画面を開く
+    function openAddForm(dateStr = '') {
+      // フォームをリセット
+      document.getElementById('inputTitle').value = '';
+      document.getElementById('inputLocation').value = '';
+      document.getElementById('inputMemo').value = '';
+      
+      // 日時の初期値設定
+      const now = new Date();
+      if(dateStr) {
+        // カレンダーの日付タップ時
+        document.getElementById('inputStart').value = dateStr + 'T09:00';
+        document.getElementById('inputEnd').value = dateStr + 'T10:00';
+      } else {
+        // ＋ボタン押下時（現在時刻）
+        const isoNow = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        document.getElementById('inputStart').value = isoNow;
+        document.getElementById('inputEnd').value = isoNow;
+      }
+      
+      overlay.classList.add('active');
+      addSheet.classList.add('active');
+      document.getElementById('inputTitle').focus();
     }
 
-    // 背景タップや×ボタンで閉じる
-    overlay.addEventListener('click', closeModal);
-    closeBtn.addEventListener('click', closeModal);
+    // 保存処理
+    function saveEvent() {
+      const title = document.getElementById('inputTitle').value;
+      if(!title) { alert('タイトルを入力してください'); return; }
 
+      const start = document.getElementById('inputStart').value;
+      const end = document.getElementById('inputEnd').value;
+      const location = document.getElementById('inputLocation').value;
+      const memo = document.getElementById('inputMemo').value;
+      const color = document.querySelector('input[name="color"]:checked').value;
+
+      const postData = {
+        title: title,
+        start: start,
+        end: end,
+        location: location,
+        memo: memo,
+        color: color
+      };
+
+      // ボタンを保存中にする
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.textContent = '保存中...';
+      saveBtn.disabled = true;
+
+      // GASに送信
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify(postData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert('保存しました！');
+        closeAllSheets();
+        location.reload(); // カレンダー再読み込み（手抜きだが確実）
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('保存に失敗しました');
+        saveBtn.textContent = '保存';
+        saveBtn.disabled = false;
+      });
+    }
+
+    // Ctrl+S で保存
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (addSheet.classList.contains('active')) {
+          saveEvent();
+        }
+      }
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', saveEvent);
+    document.getElementById('fabBtn').addEventListener('click', () => openAddForm());
 
     document.addEventListener('DOMContentLoaded', function() {
       var calendarEl = document.getElementById('calendar');
-
       var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'multiMonthYear',
-        multiMonthMaxColumns: 1, // 縦1列表示（スクロール可能）
+        multiMonthMaxColumns: 1,
         locale: 'ja',
         
-        // ★重要：矢印ボタンの動作をカスタマイズ
         customButtons: {
-          myPrev: {
-            text: '‹',
-            click: function() {
-              calendar.incrementDate({ months: -1 }); // 1ヶ月戻る
-            }
-          },
-          myNext: {
-            text: '›',
-            click: function() {
-              calendar.incrementDate({ months: 1 }); // 1ヶ月進む
-            }
-          }
+          myPrev: { text: '‹', click: function() { calendar.incrementDate({ months: -1 }); }},
+          myNext: { text: '›', click: function() { calendar.incrementDate({ months: 1 }); }}
         },
-
-        headerToolbar: {
-          left: 'myPrev,myNext today', // カスタムボタンを配置
-          center: 'title',
-          right: '' // 右側は空にする（シンプル化）
-        },
-
+        headerToolbar: { left: 'myPrev,myNext today', center: 'title', right: '' },
         eventDisplay: 'block',
         dayMaxEvents: true,
 
-        // データ取得
+        // 日付タップで追加画面へ
+        dateClick: function(info) {
+          openAddForm(info.dateStr);
+        },
+
         events: function(info, successCallback, failureCallback) {
           fetch(GAS_URL)
             .then(response => response.json())
-            .then(data => {
-              successCallback(data);
-            })
-            .catch(error => {
-              console.error('Error:', error);
-              failureCallback(error);
-            });
+            .then(data => successCallback(data))
+            .catch(error => failureCallback(error));
         },
 
-        // ★クリック時の動作変更：リンクを飛ばずにボトムシートを開く
         eventClick: function(info) {
-          info.jsEvent.preventDefault(); // 勝手にYouTubeに飛ばないようにする
-          
-          // 日付のフォーマット (例: 2026年1月5日)
-          const dateObj = info.event.start;
-          const dateStr = dateObj.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-          
-          // モーダルを開く
-          openModal(info.event.title, dateStr, info.event.url);
+          info.jsEvent.preventDefault();
+          openDetail(info.event);
         }
       });
-
       calendar.render();
     });
 
-    // PWA登録
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=4');
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=5');
   </script>
 </body>
 </html>
