@@ -28,13 +28,18 @@
     }
 
     /* イベントの見た目カスタマイズ */
+    /* 修正後：これを追加 */
     .fc-event {
       cursor: pointer;
+      text-decoration: none; /* リンクの下線を消す */
+    }
+    
+    /* ★重要：外枠ではなく「中身」に色をつける */
+    .fc-event-main {
       background-color: #ff0000 !important;
-      /* 背景を強制的に赤にする */
-      border: none !important;
       color: #ffffff !important;
-      /* 文字を強制的に白にする（背景が赤なら白が見やすい） */
+      border: none !important;
+      padding: 2px 4px; /* 少し余白を入れると見やすい */
     }
 
     .fc-event-title {
@@ -109,5 +114,6 @@
     }
   </script>
 </body>
+
 
 </html>
