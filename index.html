@@ -56,19 +56,25 @@
     
     /* ホバー時のメンバー表示ツールチップ */
     .band-item:hover::after {
+      
       content: attr(data-members);
       position: absolute;
-      left: 100%;
-      top: 0;
       background: #333;
       color: #fff;
       padding: 6px 12px;
       border-radius: 4px;
       font-size: 12px;
-      white-space: nowrap;
-      z-index: 3000;
       pointer-events: none;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+
+      left: 0;           /* 左端を合わせる */
+      top: 100%;         /* 下側に表示 */
+      margin-top: 4px;   /* 少し隙間を空ける */
+      width: max-content; /* 文字数に合わせて幅を確保 */
+      max-width: 200px;   /* 最大幅制限 */
+      white-space: normal; /* 折り返し許可 */
+      z-index: 3000;
+      
     }
 
     .btn-add-band {
@@ -86,7 +92,22 @@
 
     /* カレンダー本体 */
     #calendar { height: 100vh; }
-    
+
+    /* 予定の文字数制限と見た目 */
+    .fc-event-main { 
+      color: #fff !important; 
+      padding: 2px 6px !important; 
+      font-size: 11px; 
+      font-weight: 500; 
+      border-radius: 4px; 
+      
+      white-space: nowrap;       /* 折り返さない */
+      overflow: hidden;          /* はみ出した部分を隠す */
+      text-overflow: ellipsis;   /* はみ出したら「...」にする */
+      max-width: 100%;           /* 幅を親要素に合わせる */
+      display: block;            /* ブロック要素にする */
+    }
+
     /* 共通UI */
     .fab-btn { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--google-blue); cursor: pointer; z-index: 1500; transition: transform 0.2s; }
     .fab-btn:active { transform: scale(0.95); }
@@ -161,7 +182,8 @@
       </div>
       <div class="input-group">
         <label>メンバー (カンマ区切り)</label>
-        <input type="text" id="bandMembers" class="input-field" placeholder="例: 佐藤, 田中, 鈴木">
+        <input type="text" id="bandMembers" class="input-field" list="memberList" placeholder="メンバーを選択または入力">
+        <datalist id="memberList"></datalist>
       </div>
       <div class="input-group">
         <label>イメージカラー</label>
@@ -233,6 +255,7 @@
     // グローバル変数
     let allEvents = [];
     let allBands = [];
+    let allMembers = [];
     let currentEvent = null;
 
     // --- ユーティリティ ---
@@ -276,6 +299,13 @@
             <div class="color-label">${band.name}</div>
           </label>`;
         colorContainer.innerHTML += radioHtml;
+      });
+
+      // スプレッドシートの「Members」タブから取得した名前を使います
+      allMembers.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        memberList.appendChild(option);
       });
     }
 
@@ -357,6 +387,11 @@
         // 3. 新規モード
         document.getElementById('eventFormTitle').textContent = '予定を追加';
         document.getElementById('eventId').value = '';
+        
+        // ★追加：保存ボタンを強制的に再表示する
+        document.getElementById('saveEventBtn').style.display = 'inline-block';
+        // ★追加：削除ボタンは隠す
+        document.getElementById('deleteEventBtn').style.display = 'none';
         
         // 日時の初期値
         const baseDate = dateStr ? new Date(dateStr) : new Date();
@@ -460,6 +495,7 @@
             .then(data => {
               allEvents = data.events;
               allBands = data.bands;
+              allMembers = data.members || [];
               
               renderBandList(); // バンド一覧更新
               success(allEvents); // カレンダー描画
@@ -476,4 +512,3 @@
   </script>
 </body>
 </html>
-
